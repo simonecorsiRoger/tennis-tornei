@@ -17,6 +17,54 @@ function Badge({ stato }) {
   );
 }
 
+
+// ── Login Admin ─────────────────────────────────────────────────
+function LoginAdmin({ onLogin }) {
+  const [password, setPassword] = useState("");
+  const [errore, setErrore] = useState("");
+
+  const ADMIN_PASSWORD = "tennis2026"; // Cambia questa password!
+
+  const handleLogin = () => {
+    if (password === ADMIN_PASSWORD) {
+      onLogin();
+    } else {
+      setErrore("Password non corretta.");
+    }
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#f0fdf4", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, fontFamily: "'Inter', sans-serif" }}>
+      <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
+      <div style={{ background: "#fff", borderRadius: 24, padding: 40, width: "100%", maxWidth: 380, boxShadow: "0 20px 60px rgba(0,0,0,0.08)", border: "1.5px solid #e5e7eb" }}>
+        <div style={{ textAlign: "center", marginBottom: 32 }}>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>⚙️</div>
+          <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 24, fontWeight: 900, color: "#14532d", margin: "0 0 6px" }}>Area Admin</h1>
+          <p style={{ color: "#6b7280", fontSize: 14, margin: 0 }}>Inserisci la password per accedere</p>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div>
+            <label style={{ fontSize: 13, fontWeight: 700, color: "#374151", display: "block", marginBottom: 6 }}>Password</label>
+            <input value={password} onChange={e => setPassword(e.target.value)} type="password"
+              placeholder="••••••••"
+              onKeyDown={e => e.key === "Enter" && handleLogin()}
+              style={{ width: "100%", padding: "11px 14px", borderRadius: 10, border: "1.5px solid #d1d5db", fontSize: 14, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
+          </div>
+          {errore && (
+            <div style={{ background: "#fee2e2", color: "#7f1d1d", padding: "10px 14px", borderRadius: 10, fontSize: 13, fontWeight: 600 }}>
+              ⚠️ {errore}
+            </div>
+          )}
+          <button onClick={handleLogin}
+            style={{ padding: "13px", background: "linear-gradient(135deg, #14532d, #16a34a)", color: "#fff", border: "none", borderRadius: 12, fontSize: 15, fontWeight: 800, cursor: "pointer" }}>
+            Accedi →
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Login Giocatore ─────────────────────────────────────────────
 function LoginGiocatore({ onLogin }) {
   const [nome, setNome] = useState("");
@@ -612,6 +660,7 @@ export default function App() {
   const [giocatori, setGiocatori] = useState([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState("admin"); // admin | giocatore
+  const [adminLoggato, setAdminLoggato] = useState(false);
   const [giocatoreLoggato, setGiocatoreLoggato] = useState(null);
   const [selectedTorneo, setSelectedTorneo] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -699,6 +748,11 @@ export default function App() {
     return <LoginGiocatore onLogin={(g) => setGiocatoreLoggato(g)} />;
   }
 
+  // Login admin
+  if (view === "admin" && !adminLoggato) {
+    return <LoginAdmin onLogin={() => setAdminLoggato(true)} />;
+  }
+
   // Vista admin
   return (
     <div style={{ minHeight: "100vh", background: "#f0fdf4", fontFamily: "'Inter', sans-serif" }}>
@@ -717,6 +771,12 @@ export default function App() {
               style={{ padding: "7px 14px", borderRadius: 9, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 13, background: view === "admin" ? "#fff" : "transparent", color: view === "admin" ? "#16a34a" : "#6b7280", boxShadow: view === "admin" ? "0 1px 4px rgba(0,0,0,0.08)" : "none" }}>
               ⚙️ Admin
             </button>
+            {adminLoggato && (
+              <button onClick={() => { setAdminLoggato(false); setView("giocatore"); }}
+                style={{ padding: "7px 12px", borderRadius: 9, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 12, background: "transparent", color: "#dc2626" }}>
+                Esci
+              </button>
+            )}
             <button onClick={() => { setView("giocatore"); setSelectedTorneo(null); setShowForm(false); }}
               style={{ padding: "7px 14px", borderRadius: 9, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 13, background: view === "giocatore" ? "#fff" : "transparent", color: view === "giocatore" ? "#16a34a" : "#6b7280", boxShadow: view === "giocatore" ? "0 1px 4px rgba(0,0,0,0.08)" : "none" }}>
               👤 Giocatori
