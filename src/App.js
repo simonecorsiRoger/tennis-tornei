@@ -18,6 +18,48 @@ function Badge({ stato }) {
 }
 
 
+// ── Welcome Screen ──────────────────────────────────────────────
+function WelcomeScreen({ onScegliAdmin, onScegliGiocatore }) {
+  return (
+    <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #052e16, #14532d, #16a34a)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, fontFamily: "'Inter', sans-serif" }}>
+      <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
+      <div style={{ textAlign: "center", maxWidth: 440, width: "100%" }}>
+        <div style={{ fontSize: 72, marginBottom: 16 }}>🎾</div>
+        <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 38, fontWeight: 900, color: "#fff", margin: "0 0 8px", lineHeight: 1.1 }}>TennisTornei</h1>
+        <p style={{ color: "rgba(255,255,255,0.7)", fontSize: 15, margin: "0 0 48px", letterSpacing: 0.5 }}>Gestione tornei e iscrizioni</p>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <button onClick={onScegliAdmin}
+            style={{ padding: "18px 24px", background: "#fff", color: "#14532d", border: "none", borderRadius: 16, fontSize: 17, fontWeight: 900, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 12, transition: "all 0.2s", boxShadow: "0 8px 24px rgba(0,0,0,0.15)" }}
+            onMouseEnter={e => e.currentTarget.style.transform = "translateY(-2px)"}
+            onMouseLeave={e => e.currentTarget.style.transform = ""}>
+            <span style={{ fontSize: 24 }}>⚙️</span>
+            <div style={{ textAlign: "left" }}>
+              <div style={{ fontWeight: 900 }}>Accedi come Admin</div>
+              <div style={{ fontSize: 12, color: "#6b7280", fontWeight: 500 }}>Gestisci tornei e giocatori</div>
+            </div>
+          </button>
+
+          <button onClick={onScegliGiocatore}
+            style={{ padding: "18px 24px", background: "rgba(255,255,255,0.12)", color: "#fff", border: "2px solid rgba(255,255,255,0.3)", borderRadius: 16, fontSize: 17, fontWeight: 900, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 12, transition: "all 0.2s" }}
+            onMouseEnter={e => e.currentTarget.style.transform = "translateY(-2px)"}
+            onMouseLeave={e => e.currentTarget.style.transform = ""}>
+            <span style={{ fontSize: 24 }}>👤</span>
+            <div style={{ textAlign: "left" }}>
+              <div style={{ fontWeight: 900 }}>Accedi come Giocatore</div>
+              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", fontWeight: 500 }}>Vedi i tuoi tornei e rispondi</div>
+            </div>
+          </button>
+        </div>
+
+        <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, marginTop: 40 }}>
+          © {new Date().getFullYear()} TennisTornei
+        </p>
+      </div>
+    </div>
+  );
+}
+
 // ── Login Admin ─────────────────────────────────────────────────
 function LoginAdmin({ onLogin }) {
   const [password, setPassword] = useState("");
@@ -659,7 +701,7 @@ export default function App() {
   const [tornei, setTornei] = useState([]);
   const [giocatori, setGiocatori] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState("admin"); // admin | giocatore
+  const [view, setView] = useState("welcome"); // welcome | admin | giocatore
   const [adminLoggato, setAdminLoggato] = useState(false);
   const [giocatoreLoggato, setGiocatoreLoggato] = useState(null);
   const [selectedTorneo, setSelectedTorneo] = useState(null);
@@ -746,6 +788,16 @@ export default function App() {
   // Login giocatore
   if (view === "giocatore" && !giocatoreLoggato) {
     return <LoginGiocatore onLogin={(g) => setGiocatoreLoggato(g)} />;
+  }
+
+  // Welcome screen
+  if (view === "welcome") {
+    return (
+      <WelcomeScreen
+        onScegliAdmin={() => setView("admin")}
+        onScegliGiocatore={() => setView("giocatore")}
+      />
+    );
   }
 
   // Login admin
