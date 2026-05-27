@@ -855,13 +855,22 @@ export default function App() {
   };
 
   const toggleGruppo = async (giocatoreId, gruppo, isIn) => {
+    // Update local state immediately for responsive UI
+    setGiocatori(prev => prev.map(g => {
+      if (g.id !== giocatoreId) return g;
+      const gruppiAttuali = g.gruppi || [];
+      const nuoviGruppi = isIn
+        ? gruppiAttuali.filter(gr => gr !== gruppo)
+        : [...gruppiAttuali, gruppo];
+      return { ...g, gruppi: nuoviGruppi };
+    }));
+    // Then persist to database
     if (isIn) {
       await supabase.from("giocatore_gruppi").delete()
         .eq("giocatore_id", giocatoreId).eq("gruppo", gruppo);
     } else {
       await supabase.from("giocatore_gruppi").insert([{ giocatore_id: giocatoreId, gruppo }]);
     }
-    await caricaDati();
   };
 
   const eliminaGiocatore = async (id) => {
