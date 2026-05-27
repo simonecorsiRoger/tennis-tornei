@@ -782,6 +782,228 @@ function TorneoDetailAdmin({ torneo, onBack, onRispondi, onDelete, onEdit }) {
   );
 }
 
+
+// ── Calendar constants ──────────────────────────────────────────
+const DAYS_IT = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
+const MONTHS_IT = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
+
+function getCalendarDays(year, month) {
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const startDow = (firstDay.getDay() + 6) % 7;
+  const days = [];
+  for (let i = 0; i < startDow; i++) days.push(null);
+  for (let d = 1; d <= lastDay.getDate(); d++) days.push(d);
+  while (days.length % 7 !== 0) days.push(null);
+  return days;
+}
+
+const CAT_COLORS = {
+  "Singolare Maschile": "#2563eb",
+  "Singolare Femminile": "#db2777",
+  "Doppio Maschile": "#7c3aed",
+  "Doppio Femminile": "#d97706",
+  "Doppio Misto": "#0891b2",
+  "J30": "#7c3aed", "J60": "#2563eb", "J100": "#0891b2",
+  "J200+": "#059669", "ITF 15,25k M": "#d97706",
+  "ITF 15,25k F": "#db2777", "Challenger": "#dc2626",
+};
+
+function AdminCalendar({ tornei, onViewTorneo, onNewTorneo, onShowGiocatori, giocatori }) {
+  const today = new Date();
+  const [currentYear, setCurrentYear] = useState(today.getFullYear());
+  const [currentMonth, setCurrentMonth] = useState(today.getMonth());
+  const [calView, setCalView] = useState("month");
+  const [selectedTorneo, setSelectedTorneo] = useState(null);
+
+  const calDays = getCalendarDays(currentYear, currentMonth);
+  const weeks = [];
+  for (let i = 0; i < calDays.length; i += 7) weeks.push(calDays.slice(i, i + 7));
+
+  const torneiDelGiorno = (day) => {
+    if (!day) return [];
+    const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    return tornei.filter(t => t.data === dateStr);
+  };
+
+  const torneiDelMese = tornei.filter(t =>
+    t.data.startsWith(`${currentYear}-${String(currentMonth + 1).padStart(2, "0")}`)
+  );
+
+  const isToday = (day) => day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear();
+
+  const prevMonth = () => { if (currentMonth === 0) { setCurrentMonth(11); setCurrentYear(y => y - 1); } else setCurrentMonth(m => m - 1); };
+  const nextMonth = () => { if (currentMonth === 11) { setCurrentMonth(0); setCurrentYear(y => y + 1); } else setCurrentMonth(m => m + 1); };
+
+  const getColor = (t) => CAT_COLORS[t.categoria] || "#16a34a";
+
+  return (
+    <div>
+      {/* Top bar */}
+      <div style={{ display: "flex", gap: 10, marginBottom: 20, alignItems: "center", flexWrap: "wrap" }}>
+        <button onClick={() => setCalView(calView === "month" ? "week" : "month")}
+          style={{ padding: "10px 16px", background: "#fff", border: "1.5px solid #e5e7eb", borderRadius: 12, fontWeight: 700, fontSize: 13, cursor: "pointer", color: "#374151" }}>
+          {calView === "month" ? "📅 Vista Settimana" : "📆 Vista Mese"}
+        </button>
+        <div style={{ flex: 1 }} />
+        <button onClick={() => onShowGiocatori()}
+          style={{ padding: "10px 16px", background: "#fff", color: "#14532d", border: "1.5px solid #16a34a", borderRadius: 12, fontWeight: 800, fontSize: 13, cursor: "pointer" }}>
+          👥 Giocatori ({giocatori.length})
+        </button>
+        <button onClick={onNewTorneo}
+          style={{ padding: "10px 20px", background: "linear-gradient(135deg, #14532d, #16a34a)", color: "#fff", border: "none", borderRadius: 12, fontWeight: 800, fontSize: 14, cursor: "pointer" }}>
+          + Torneo
+        </button>
+      </div>
+
+      {/* Month navigation */}
+      <div style={{ background: "#fff", borderRadius: 16, padding: "14px 20px", marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between", border: "1.5px solid #e5e7eb" }}>
+        <button onClick={prevMonth} style={{ width: 36, height: 36, borderRadius: "50%", border: "1.5px solid #e5e7eb", background: "#fff", cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>‹</button>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 900, color: "#111827" }}>{MONTHS_IT[currentMonth]}</div>
+          <div style={{ fontSize: 12, color: "#9ca3af" }}>{currentYear} · {torneiDelMese.length} torneo/i</div>
+        </div>
+        <button onClick={nextMonth} style={{ width: 36, height: 36, borderRadius: "50%", border: "1.5px solid #e5e7eb", background: "#fff", cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>›</button>
+      </div>
+
+      {/* Calendar grid */}
+      <div style={{ background: "#fff", borderRadius: 16, overflow: "hidden", border: "1.5px solid #e5e7eb", marginBottom: 16 }}>
+        {/* Day headers */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", background: "#f9fafb", borderBottom: "1px solid #f3f4f6" }}>
+          {DAYS_IT.map((d, i) => (
+            <div key={d} style={{ textAlign: "center", padding: "10px 0", fontSize: 11, fontWeight: 800, color: i >= 5 ? "#16a34a" : "#9ca3af", letterSpacing: 1 }}>{d}</div>
+          ))}
+        </div>
+
+        {/* Month view */}
+        {calView === "month" && (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)" }}>
+            {calDays.map((day, idx) => {
+              const torneiGiorno = torneiDelGiorno(day);
+              const today = isToday(day);
+              const isWeekend = idx % 7 >= 5;
+              return (
+                <div key={idx} style={{ minHeight: 80, padding: "6px 4px", borderRight: idx % 7 !== 6 ? "1px solid #f3f4f6" : "none", borderBottom: "1px solid #f3f4f6", background: !day ? "#fafafa" : isWeekend ? "#f9fffe" : "#fff" }}>
+                  {day && (
+                    <>
+                      <div style={{ width: 24, height: 24, borderRadius: "50%", background: today ? "#16a34a" : "transparent", color: today ? "#fff" : isWeekend ? "#16a34a" : "#374151", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: today ? 800 : 600, marginBottom: 3 }}>{day}</div>
+                      {torneiGiorno.map(t => (
+                        <div key={t.id} onClick={() => setSelectedTorneo(t)}
+                          style={{ background: getColor(t) + "20", borderLeft: `2px solid ${getColor(t)}`, borderRadius: "0 5px 5px 0", padding: "2px 4px", marginBottom: 2, cursor: "pointer", fontSize: 9, fontWeight: 700, color: getColor(t), overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          🎾 {t.nome}
+                        </div>
+                      ))}
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Week view */}
+        {calView === "week" && (
+          <div>
+            {weeks.map((week, wi) => (
+              <div key={wi} style={{ borderBottom: wi < weeks.length - 1 ? "2px solid #f0fdf4" : "none" }}>
+                <div style={{ background: "#f0fdf4", padding: "5px 12px", fontSize: 10, fontWeight: 800, color: "#16a34a", letterSpacing: 1 }}>SETTIMANA {wi + 1}</div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)" }}>
+                  {week.map((day, di) => {
+                    const torneiGiorno = torneiDelGiorno(day);
+                    const today = isToday(day);
+                    return (
+                      <div key={di} style={{ minHeight: 100, padding: "6px 4px", borderRight: di !== 6 ? "1px solid #f3f4f6" : "none", background: !day ? "#fafafa" : di >= 5 ? "#f9fffe" : "#fff" }}>
+                        {day && (
+                          <>
+                            <div style={{ width: 26, height: 26, borderRadius: "50%", background: today ? "#16a34a" : "transparent", color: today ? "#fff" : di >= 5 ? "#16a34a" : "#374151", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: today ? 800 : 600, marginBottom: 5 }}>{day}</div>
+                            {torneiGiorno.map(t => (
+                              <div key={t.id} onClick={() => setSelectedTorneo(t)}
+                                style={{ background: getColor(t), borderRadius: 7, padding: "4px 6px", marginBottom: 4, cursor: "pointer", color: "#fff", fontSize: 9, fontWeight: 700, boxShadow: `0 2px 4px ${getColor(t)}40` }}>
+                                🎾 {t.nome}
+                                {t.maestro && <div style={{ fontSize: 8, opacity: 0.85 }}>👨‍🏫 {t.maestro}</div>}
+                              </div>
+                            ))}
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Tornei del mese list */}
+      {torneiDelMese.length > 0 && (
+        <div style={{ background: "#fff", borderRadius: 16, padding: 20, border: "1.5px solid #e5e7eb" }}>
+          <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, color: "#111827", margin: "0 0 14px" }}>📋 Tornei di {MONTHS_IT[currentMonth]}</h3>
+          {torneiDelMese.map(t => {
+            const confermati = (t.partecipanti || []).filter(p => p.risposta === "confermato").length;
+            const inAttesa = (t.partecipanti || []).filter(p => p.risposta === "in attesa").length;
+            return (
+              <div key={t.id} onClick={() => onViewTorneo(t)}
+                style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 8px", borderBottom: "1px solid #f3f4f6", cursor: "pointer", borderRadius: 8, transition: "background 0.15s" }}
+                onMouseEnter={e => e.currentTarget.style.background = "#f9fafb"}
+                onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                <div style={{ width: 6, height: 44, borderRadius: 3, background: getColor(t), flexShrink: 0 }} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700, color: "#111827", fontSize: 14 }}>{t.nome}</div>
+                  <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>
+                    📅 {new Date(t.data).toLocaleDateString("it-IT", { weekday: "short", day: "numeric", month: "short" })} · 📍 {t.luogo}
+                    {t.maestro && ` · 🎓 ${t.maestro}`}
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "#16a34a" }}>✓ {confermati}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "#d97706" }}>◷ {inAttesa}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: getColor(t), background: getColor(t) + "18", padding: "2px 8px", borderRadius: 10 }}>{t.categoria}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Torneo detail modal */}
+      {selectedTorneo && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 200, padding: 16 }}
+          onClick={() => setSelectedTorneo(null)}>
+          <div style={{ background: "#fff", borderRadius: "20px 20px 0 0", padding: 28, width: "100%", maxWidth: 500 }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ width: 40, height: 4, borderRadius: 2, background: "#e5e7eb", margin: "0 auto 20px" }} />
+            <div style={{ display: "flex", gap: 12, alignItems: "flex-start", marginBottom: 16 }}>
+              <div style={{ width: 10, height: 10, borderRadius: "50%", background: getColor(selectedTorneo), marginTop: 6, flexShrink: 0 }} />
+              <div>
+                <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, color: "#111827", margin: "0 0 6px" }}>{selectedTorneo.nome}</h3>
+                <span style={{ fontSize: 11, fontWeight: 700, color: getColor(selectedTorneo), background: getColor(selectedTorneo) + "18", padding: "2px 10px", borderRadius: 20 }}>{selectedTorneo.categoria}</span>
+              </div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 20 }}>
+              <div style={{ fontSize: 14, color: "#6b7280" }}>📅 {new Date(selectedTorneo.data).toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</div>
+              <div style={{ fontSize: 14, color: "#6b7280" }}>📍 {selectedTorneo.luogo}</div>
+              {selectedTorneo.maestro && <div style={{ fontSize: 14, color: "#374151", fontWeight: 600 }}>🎓 {selectedTorneo.maestro}</div>}
+              <div style={{ display: "flex", gap: 16, marginTop: 4 }}>
+                <span style={{ fontSize: 13, color: "#16a34a", fontWeight: 700 }}>✓ {(selectedTorneo.partecipanti || []).filter(p => p.risposta === "confermato").length} Confermati</span>
+                <span style={{ fontSize: 13, color: "#d97706", fontWeight: 700 }}>◷ {(selectedTorneo.partecipanti || []).filter(p => p.risposta === "in attesa").length} In attesa</span>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={() => { onViewTorneo(selectedTorneo); setSelectedTorneo(null); }}
+                style={{ flex: 1, padding: 12, background: "linear-gradient(135deg, #14532d, #16a34a)", color: "#fff", border: "none", borderRadius: 12, fontWeight: 800, fontSize: 14, cursor: "pointer" }}>
+                Vai al torneo →
+              </button>
+              <button onClick={() => setSelectedTorneo(null)}
+                style={{ padding: "12px 16px", background: "#f3f4f6", color: "#374151", border: "none", borderRadius: 12, fontWeight: 700, cursor: "pointer" }}>✕</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main App ────────────────────────────────────────────────────
 export default function App() {
   const [tornei, setTornei] = useState([]);
@@ -958,36 +1180,13 @@ export default function App() {
             onRispondi={rispondi} onDelete={deleteTorneo}
             onEdit={(t) => { setEditTorneo(t); setShowForm(true); setSelectedTorneo(null); }} />
         ) : (
-          <>
-            <div style={{ display: "flex", gap: 12, marginBottom: 24, alignItems: "center" }}>
-              <div style={{ flex: 1, position: "relative" }}>
-                <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "#9ca3af" }}>🔍</span>
-                <input value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="Cerca torneo..."
-                  style={{ width: "100%", padding: "11px 14px 11px 38px", borderRadius: 12, border: "1.5px solid #e5e7eb", fontSize: 14, background: "#fff", boxSizing: "border-box", outline: "none", fontFamily: "inherit" }} />
-              </div>
-              <button onClick={() => setShowGiocatori(true)}
-                style={{ padding: "11px 16px", background: "#fff", color: "#14532d", border: "1.5px solid #16a34a", borderRadius: 12, fontWeight: 800, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}>
-                👥 Giocatori ({giocatori.length})
-              </button>
-              <button onClick={() => { setShowForm(true); setEditTorneo(null); }}
-                style={{ padding: "11px 20px", background: "linear-gradient(135deg, #14532d, #16a34a)", color: "#fff", border: "none", borderRadius: 12, fontWeight: 800, fontSize: 14, cursor: "pointer", whiteSpace: "nowrap" }}>
-                + Torneo
-              </button>
-            </div>
-
-            {loading ? (
-              <div style={{ textAlign: "center", padding: "60px 0", color: "#9ca3af" }}>⏳ Caricamento...</div>
-            ) : filtered.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "60px 0", color: "#9ca3af" }}>
-                <div style={{ fontSize: 48, marginBottom: 12 }}>🎾</div>
-                <div style={{ fontSize: 16, fontWeight: 600 }}>Nessun torneo trovato</div>
-              </div>
-            ) : (
-              <div style={{ display: "grid", gap: 16 }}>
-                {filtered.map(t => <TorneoCard key={t.id} torneo={t} onViewDetail={setSelectedTorneo} view="admin" />)}
-              </div>
-            )}
-          </>
+          <AdminCalendar
+            tornei={tornei}
+            giocatori={giocatori}
+            onViewTorneo={setSelectedTorneo}
+            onNewTorneo={() => { setShowForm(true); setEditTorneo(null); }}
+            onShowGiocatori={() => setShowGiocatori(true)}
+          />
         )}
       </main>
     </div>
