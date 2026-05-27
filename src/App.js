@@ -460,7 +460,7 @@ function GestioneGiocatori({ giocatori, onAggiungi, onElimina, onToggleGruppo, o
             <div key={g.id} style={{ borderBottom: "1px solid #f3f4f6" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", flex: 1 }}
-                  onClick={() => setExpandedId(expandedId === g.id ? null : g.id)}>
+                  onClick={e => { e.stopPropagation(); setExpandedId(expandedId === g.id ? null : g.id); }}>
                   <div style={{ width: 36, height: 36, borderRadius: "50%", background: (g.gruppi || []).length > 0 ? GRUPPO_COLORS[(g.gruppi || [])[0]] || "#16a34a" : "#16a34a", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 14, fontWeight: 800 }}>
                     {g.nome.charAt(0).toUpperCase()}
                   </div>
@@ -489,13 +489,13 @@ function GestioneGiocatori({ giocatori, onAggiungi, onElimina, onToggleGruppo, o
 
               {/* Expanded group assignment */}
               {expandedId === g.id && (
-                <div style={{ background: "#f9fafb", borderRadius: 10, padding: "12px 14px", marginBottom: 10 }}>
+                <div style={{ background: "#f9fafb", borderRadius: 10, padding: "12px 14px", marginBottom: 10 }} onClick={e => e.stopPropagation()}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: "#6b7280", marginBottom: 8 }}>ASSEGNA GRUPPI:</div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                     {GRUPPI_NOMI.map(gr => {
                       const isIn = (g.gruppi || []).includes(gr);
                       return (
-                        <button key={gr} onClick={() => onToggleGruppo(g.id, gr, isIn)}
+                        <button key={gr} onClick={e => { e.stopPropagation(); onToggleGruppo(g.id, gr, isIn); }}
                           style={{ padding: "6px 14px", borderRadius: 20, border: `2px solid ${GRUPPO_COLORS[gr]}`, background: isIn ? GRUPPO_COLORS[gr] : "transparent", color: isIn ? "#fff" : GRUPPO_COLORS[gr], fontWeight: 700, fontSize: 12, cursor: "pointer", transition: "all 0.15s" }}>
                           {isIn ? "✓ " : "+ "}{gr}
                         </button>
