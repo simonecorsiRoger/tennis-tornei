@@ -377,26 +377,41 @@ function TorneoDetailGiocatore({ torneo, giocatore, onBack, onRispondi }) {
 }
 
 // ── Gestione Giocatori (Admin) ──────────────────────────────────
-function GestioneGiocatori({ giocatori, onAggiungi, onElimina, onBack }) {
+const GRUPPI_NOMI = ["J30","J60","J100","J200+","ITF 15,25k M","ITF 15,25k F","Challenger"];
+const GRUPPO_COLORS = {
+  "J30": "#7c3aed", "J60": "#2563eb", "J100": "#0891b2",
+  "J200+": "#059669", "ITF 15,25k M": "#d97706",
+  "ITF 15,25k F": "#db2777", "Challenger": "#dc2626"
+};
+
+function GestioneGiocatori({ giocatori, onAggiungi, onElimina, onAggiorna, onBack }) {
   const [nome, setNome] = useState("");
   const [pin, setPin] = useState("");
+  const [gruppo, setGruppo] = useState("J100");
   const [loading, setLoading] = useState(false);
+  const [activeGruppo, setActiveGruppo] = useState("tutti");
 
   const handleAggiungi = async () => {
     if (!nome.trim() || !pin.trim()) return alert("Inserisci nome e PIN.");
     if (pin.length < 4) return alert("Il PIN deve avere almeno 4 cifre.");
     setLoading(true);
-    await onAggiungi(nome.trim(), pin.trim());
+    await onAggiungi(nome.trim(), pin.trim(), gruppo);
     setNome("");
     setPin("");
     setLoading(false);
   };
 
+  const giocatoriFiltrati = activeGruppo === "tutti"
+    ? giocatori
+    : giocatori.filter(g => g.gruppo === activeGruppo);
+
   return (
-    <div style={{ maxWidth: 600, margin: "0 auto" }}>
+    <div style={{ maxWidth: 680, margin: "0 auto" }}>
       <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", cursor: "pointer", color: "#6b7280", fontSize: 14, fontWeight: 700, marginBottom: 20, padding: 0 }}>
         ← Torna ai tornei
       </button>
+
+      {/* Add player form */}
       <div style={{ background: "#fff", borderRadius: 20, border: "1.5px solid #e5e7eb", padding: 28, marginBottom: 20 }}>
         <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, color: "#111827", margin: "0 0 20px" }}>👥 Gestione Giocatori</h2>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
@@ -411,26 +426,64 @@ function GestioneGiocatori({ giocatori, onAggiungi, onElimina, onBack }) {
               style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1.5px solid #d1d5db", fontSize: 14, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
           </div>
         </div>
+        <div style={{ marginBottom: 14 }}>
+          <label style={{ fontSize: 13, fontWeight: 700, color: "#374151", display: "block", marginBottom: 8 }}>Categoria / Gruppo</label>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {GRUPPI_NOMI.map(g => (
+              <button key={g} onClick={() => setGruppo(g)}
+                style={{ padding: "6px 14px", borderRadius: 20, border: `2px solid ${GRUPPO_COLORS[g]}`, background: gruppo === g ? GRUPPO_COLORS[g] : "transparent", color: gruppo === g ? "#fff" : GRUPPO_COLORS[g], fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+                {g}
+              </button>
+            ))}
+          </div>
+        </div>
         <button onClick={handleAggiungi} disabled={loading}
           style={{ width: "100%", padding: 12, background: "linear-gradient(135deg, #14532d, #16a34a)", color: "#fff", border: "none", borderRadius: 12, fontWeight: 800, fontSize: 14, cursor: "pointer" }}>
           {loading ? "..." : "+ Aggiungi Giocatore"}
         </button>
       </div>
 
+      {/* Players list with group filter */}
       <div style={{ background: "#fff", borderRadius: 20, border: "1.5px solid #e5e7eb", padding: 28 }}>
         <h3 style={{ fontSize: 15, fontWeight: 800, color: "#374151", margin: "0 0 16px" }}>Giocatori registrati ({giocatori.length})</h3>
-        {giocatori.length === 0 ? (
-          <p style={{ color: "#9ca3af", fontStyle: "italic" }}>Nessun giocatore ancora.</p>
+
+        {/* Group filter tabs */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 20 }}>
+          <button onClick={() => setActiveGruppo("tutti")}
+            style={{ padding: "5px 14px", borderRadius: 20, border: "2px solid #e5e7eb", background: activeGruppo === "tutti" ? "#14532d" : "transparent", color: activeGruppo === "tutti" ? "#fff" : "#6b7280", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+            Tutti ({giocatori.length})
+          </button>
+          {GRUPPI_NOMI.map(g => {
+            const count = giocatori.filter(p => p.gruppo === g).length;
+            if (count === 0) return null;
+            return (
+              <button key={g} onClick={() => setActiveGruppo(g)}
+                style={{ padding: "5px 14px", borderRadius: 20, border: `2px solid ${GRUPPO_COLORS[g]}`, background: activeGruppo === g ? GRUPPO_COLORS[g] : "transparent", color: activeGruppo === g ? "#fff" : GRUPPO_COLORS[g], fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+                {g} ({count})
+              </button>
+            );
+          })}
+        </div>
+
+        {giocatoriFiltrati.length === 0 ? (
+          <p style={{ color: "#9ca3af", fontStyle: "italic" }}>Nessun giocatore in questa categoria.</p>
         ) : (
-          giocatori.map(g => (
+          giocatoriFiltrati.map(g => (
             <div key={g.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid #f3f4f6" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={{ width: 36, height: 36, borderRadius: "50%", background: "linear-gradient(135deg, #16a34a, #4ade80)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 14, fontWeight: 800 }}>
+                <div style={{ width: 36, height: 36, borderRadius: "50%", background: GRUPPO_COLORS[g.gruppo] || "#16a34a", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 14, fontWeight: 800 }}>
                   {g.nome.charAt(0).toUpperCase()}
                 </div>
                 <div>
                   <div style={{ fontWeight: 700, color: "#111827" }}>{g.nome}</div>
-                  <div style={{ fontSize: 12, color: "#9ca3af" }}>PIN: {g.pin}</div>
+                  <div style={{ display: "flex", gap: 8, marginTop: 2 }}>
+                    <span style={{ fontSize: 11, color: "#9ca3af" }}>PIN: {g.pin}</span>
+                    {g.gruppo && (
+                      <span style={{ fontSize: 11, fontWeight: 700, color: GRUPPO_COLORS[g.gruppo] || "#16a34a", background: `${GRUPPO_COLORS[g.gruppo]}15`, padding: "1px 8px", borderRadius: 10 }}>
+                        {g.gruppo}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
               <button onClick={() => { if (window.confirm(`Eliminare ${g.nome}?`)) onElimina(g.id); }}
@@ -564,17 +617,35 @@ function AdminNewTorneo({ onSave, onCancel, torneoEdit, giocatori }) {
             <span style={{ fontSize: 12, color: "#9ca3af" }}>{partecipanti.length} / {form.max_partecipanti}</span>
           </div>
 
-          {/* Seleziona da giocatori registrati */}
+          {/* Seleziona da giocatori registrati - con filtro per gruppo */}
           {giocatori.length > 0 && (
             <div style={{ marginBottom: 12 }}>
-              <label style={{ fontSize: 12, fontWeight: 700, color: "#6b7280", display: "block", marginBottom: 6 }}>SELEZIONA DA GIOCATORI REGISTRATI</label>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {giocatori.filter(g => !partecipanti.find(p => p.nome.toLowerCase() === g.nome.toLowerCase())).map(g => (
-                  <button key={g.id} onClick={() => aggiungiPartecipante(g.nome)}
-                    style={{ padding: "6px 12px", background: "#f0fdf4", border: "1.5px solid #bbf7d0", borderRadius: 20, fontSize: 13, fontWeight: 700, color: "#14532d", cursor: "pointer" }}>
-                    + {g.nome}
-                  </button>
-                ))}
+              <label style={{ fontSize: 12, fontWeight: 700, color: "#6b7280", display: "block", marginBottom: 8 }}>SELEZIONA DA GIOCATORI REGISTRATI</label>
+              {/* Aggiungi gruppo intero */}
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+                {["J30","J60","J100","J200+","ITF 15,25k M","ITF 15,25k F","Challenger"].map(gruppo => {
+                  const gruppoGiocatori = giocatori.filter(g => g.gruppo === gruppo && !partecipanti.find(p => p.nome.toLowerCase() === g.nome.toLowerCase()));
+                  if (gruppoGiocatori.length === 0) return null;
+                  const GRUPPO_COLORS = { "J30": "#7c3aed", "J60": "#2563eb", "J100": "#0891b2", "J200+": "#059669", "ITF 15,25k M": "#d97706", "ITF 15,25k F": "#db2777", "Challenger": "#dc2626" };
+                  return (
+                    <button key={gruppo} onClick={() => gruppoGiocatori.forEach(g => aggiungiPartecipante(g.nome))}
+                      style={{ padding: "5px 12px", background: `${GRUPPO_COLORS[gruppo]}15`, border: `1.5px solid ${GRUPPO_COLORS[gruppo]}`, borderRadius: 20, fontSize: 12, fontWeight: 700, color: GRUPPO_COLORS[gruppo], cursor: "pointer" }}>
+                      + Gruppo {gruppo} ({gruppoGiocatori.length})
+                    </button>
+                  );
+                })}
+              </div>
+              {/* Singoli giocatori */}
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {giocatori.filter(g => !partecipanti.find(p => p.nome.toLowerCase() === g.nome.toLowerCase())).map(g => {
+                  const GRUPPO_COLORS = { "J30": "#7c3aed", "J60": "#2563eb", "J100": "#0891b2", "J200+": "#059669", "ITF 15,25k M": "#d97706", "ITF 15,25k F": "#db2777", "Challenger": "#dc2626" };
+                  return (
+                    <button key={g.id} onClick={() => aggiungiPartecipante(g.nome)}
+                      style={{ padding: "5px 12px", background: "#f9fafb", border: `1.5px solid ${GRUPPO_COLORS[g.gruppo] || "#d1d5db"}`, borderRadius: 20, fontSize: 12, fontWeight: 700, color: GRUPPO_COLORS[g.gruppo] || "#374151", cursor: "pointer" }}>
+                      + {g.nome}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -758,8 +829,8 @@ export default function App() {
     await caricaDati();
   };
 
-  const aggiungiGiocatore = async (nome, pin) => {
-    await supabase.from("giocatori").insert([{ nome, pin }]);
+  const aggiungiGiocatore = async (nome, pin, gruppo) => {
+    await supabase.from("giocatori").insert([{ nome, pin, gruppo: gruppo || "J100" }]);
     await caricaDati();
   };
 
@@ -841,7 +912,7 @@ export default function App() {
         {showForm ? (
           <AdminNewTorneo torneoEdit={editTorneo} giocatori={giocatori} onSave={saveTorneo} onCancel={() => { setShowForm(false); setEditTorneo(null); }} />
         ) : showGiocatori ? (
-          <GestioneGiocatori giocatori={giocatori} onAggiungi={aggiungiGiocatore} onElimina={eliminaGiocatore} onBack={() => setShowGiocatori(false)} />
+          <GestioneGiocatori giocatori={giocatori} onAggiungi={aggiungiGiocatore} onElimina={eliminaGiocatore} onAggiorna={caricaDati} onBack={() => setShowGiocatori(false)} />
         ) : selectedTorneo ? (
           <TorneoDetailAdmin torneo={selectedTorneo} onBack={() => setSelectedTorneo(null)}
             onRispondi={rispondi} onDelete={deleteTorneo}
