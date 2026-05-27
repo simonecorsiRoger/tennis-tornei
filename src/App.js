@@ -25,8 +25,9 @@ function WelcomeScreen({ onScegliAdmin, onScegliGiocatore }) {
       <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
       <div style={{ textAlign: "center", maxWidth: 440, width: "100%" }}>
         <div style={{ fontSize: 72, marginBottom: 16 }}>🎾</div>
-        <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 38, fontWeight: 900, color: "#fff", margin: "0 0 8px", lineHeight: 1.1 }}>TennisTornei</h1>
-        <p style={{ color: "rgba(255,255,255,0.7)", fontSize: 15, margin: "0 0 48px", letterSpacing: 0.5 }}>Gestione tornei e iscrizioni</p>
+        <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, fontWeight: 900, color: "#fff", margin: "0 0 6px", lineHeight: 1.1 }}>PIATTI TENNIS CENTER</h1>
+        <p style={{ color: "rgba(255,255,255,0.9)", fontSize: 16, fontWeight: 700, margin: "0 0 4px", letterSpacing: 1 }}>Schedule Tournaments</p>
+        <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, margin: "0 0 48px" }}>Gestione tornei e iscrizioni</p>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <button onClick={onScegliAdmin}
@@ -202,7 +203,7 @@ function ProfiloGiocatore({ giocatore, tornei, onRispondi, onLogout }) {
         <div style={{ maxWidth: 800, margin: "0 auto", padding: "0 20px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 64 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <span style={{ fontSize: 24 }}>🎾</span>
-            <div style={{ fontFamily: "'Playfair Display', serif", fontWeight: 900, fontSize: 18, color: "#14532d" }}>TennisTornei</div>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontWeight: 900, fontSize: 14, color: "#14532d", lineHeight: 1.2 }}>PIATTI TENNIS CENTER<br/><span style={{ fontSize: 10, color: "#16a34a", fontWeight: 700, letterSpacing: 1 }}>SCHEDULE TOURNAMENTS</span></div>
           </div>
           <button onClick={onLogout}
             style={{ padding: "7px 14px", background: "#f3f4f6", color: "#374151", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
@@ -924,8 +925,8 @@ export default function App() {
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <span style={{ fontSize: 28 }}>🎾</span>
             <div>
-              <div style={{ fontFamily: "'Playfair Display', serif", fontWeight: 900, fontSize: 20, color: "#14532d", lineHeight: 1 }}>TennisTornei</div>
-              <div style={{ fontSize: 11, color: "#16a34a", fontWeight: 700, letterSpacing: 1 }}>GESTIONE TORNEI</div>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontWeight: 900, fontSize: 16, color: "#14532d", lineHeight: 1 }}>PIATTI TENNIS CENTER</div>
+              <div style={{ fontSize: 10, color: "#16a34a", fontWeight: 700, letterSpacing: 1 }}>SCHEDULE TOURNAMENTS</div>
             </div>
           </div>
           <div style={{ display: "flex", background: "#f3f4f6", borderRadius: 12, padding: 4, gap: 4 }}>
