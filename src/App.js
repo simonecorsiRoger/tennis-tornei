@@ -19,7 +19,7 @@ function Badge({ stato }) {
 
 
 // ── Welcome Screen ──────────────────────────────────────────────
-function WelcomeScreen({ onScegliAdmin, onScegliGiocatore }) {
+function WelcomeScreen({ onScegliAdmin, onScegliGiocatore, onScegliCoach }) {
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #052e16, #14532d, #16a34a)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, fontFamily: "'Inter', sans-serif" }}>
       <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
@@ -49,6 +49,17 @@ function WelcomeScreen({ onScegliAdmin, onScegliGiocatore }) {
             <div style={{ textAlign: "left" }}>
               <div style={{ fontWeight: 900 }}>Accedi come Giocatore</div>
               <div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", fontWeight: 500 }}>Vedi i tuoi tornei e rispondi</div>
+            </div>
+          </button>
+
+          <button onClick={onScegliCoach}
+            style={{ padding: "18px 24px", background: "rgba(255,255,255,0.08)", color: "#fff", border: "2px solid rgba(255,255,255,0.2)", borderRadius: 16, fontSize: 17, fontWeight: 900, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 12, transition: "all 0.2s" }}
+            onMouseEnter={e => e.currentTarget.style.transform = "translateY(-2px)"}
+            onMouseLeave={e => e.currentTarget.style.transform = ""}>
+            <span style={{ fontSize: 24 }}>🎓</span>
+            <div style={{ textAlign: "left" }}>
+              <div style={{ fontWeight: 900 }}>Accedi come Coach</div>
+              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", fontWeight: 500 }}>Vedi i tornei assegnati</div>
             </div>
           </button>
         </div>
@@ -558,7 +569,7 @@ function TorneoCard({ torneo, onViewDetail, view, nomeGiocatore }) {
 }
 
 // ── Admin New Torneo ────────────────────────────────────────────
-function AdminNewTorneo({ onSave, onCancel, torneoEdit, giocatori }) {
+function AdminNewTorneo({ onSave, onCancel, torneoEdit, giocatori, coach }) {
   const empty = { nome: "", data: "", luogo: "", categoria: CATEGORIE[0], max_partecipanti: 16, scadenza_iscrizione: "", descrizione: "", maestro: "" };
   const [form, setForm] = useState(torneoEdit ? { ...torneoEdit } : empty);
   const [partecipanti, setPartecipanti] = useState(torneoEdit ? torneoEdit.partecipanti || [] : []);
@@ -619,10 +630,14 @@ function AdminNewTorneo({ onSave, onCancel, torneoEdit, giocatori }) {
             style={{ padding: "10px 14px", borderRadius: 10, border: "1.5px solid #d1d5db", fontSize: 14, fontFamily: "inherit", resize: "vertical" }} />
         </label>
         <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: "#374151" }}>🎓 Maestro accompagnatore</span>
-          <input type="text" value={form.maestro || ""} placeholder="es. Carlo Ferri"
-            onChange={e => handleChange("maestro", e.target.value)}
-            style={{ padding: "10px 14px", borderRadius: 10, border: "1.5px solid #d1d5db", fontSize: 14, outline: "none", fontFamily: "inherit" }} />
+          <span style={{ fontSize: 13, fontWeight: 700, color: "#374151" }}>🎓 Coach accompagnatore</span>
+          <select value={form.coach_id || ""} onChange={e => handleChange("coach_id", e.target.value ? parseInt(e.target.value) : null)}
+            style={{ padding: "10px 14px", borderRadius: 10, border: "1.5px solid #d1d5db", fontSize: 14, fontFamily: "inherit" }}>
+            <option value="">— Nessun coach —</option>
+            {(coach || []).map(c => (
+              <option key={c.id} value={c.id}>{c.nome}</option>
+            ))}
+          </select>
         </label>
 
         {/* Partecipanti */}
@@ -716,7 +731,18 @@ function AdminNewTorneo({ onSave, onCancel, torneoEdit, giocatori }) {
 }
 
 // ── Torneo Detail (Admin) ───────────────────────────────────────
-function TorneoDetailAdmin({ torneo, onBack, onRispondi, onDelete, onEdit }) {
+function TorneoDetailAdmin({ torneo: torneoInit, onBack, onRispondi, onDelete, onEdit }) {
+  const [torneo, setTorneo] = useState(torneoInit);
+
+  const handleRispondi = async (torneoId, nome, risposta) => {
+    setTorneo(prev => ({
+      ...prev,
+      partecipanti: (prev.partecipanti || []).map(p =>
+        p.nome.toLowerCase() === nome.toLowerCase() ? { ...p, risposta } : p
+      )
+    }));
+    await onRispondi(torneoId, nome, risposta);
+  };
   const confermati = (torneo.partecipanti || []).filter(p => p.risposta === "confermato");
   const rifiutati = (torneo.partecipanti || []).filter(p => p.risposta === "rifiutato");
   const inAttesa = (torneo.partecipanti || []).filter(p => p.risposta === "in attesa");
@@ -755,14 +781,31 @@ function TorneoDetailAdmin({ torneo, onBack, onRispondi, onDelete, onEdit }) {
           {(torneo.partecipanti || []).length === 0
             ? <p style={{ color: "#9ca3af", fontStyle: "italic" }}>Nessun partecipante ancora.</p>
             : (torneo.partecipanti || []).map((p, i) => (
-              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid #f3f4f6" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg, #16a34a, #4ade80)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 13, fontWeight: 800 }}>
-                    {p.nome.charAt(0).toUpperCase()}
+              <div key={i} style={{ padding: "12px 0", borderBottom: "1px solid #f3f4f6" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg, #16a34a, #4ade80)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 13, fontWeight: 800 }}>
+                      {p.nome.charAt(0).toUpperCase()}
+                    </div>
+                    <span style={{ fontWeight: 600, color: "#111827" }}>{p.nome}</span>
                   </div>
-                  <span style={{ fontWeight: 600, color: "#111827" }}>{p.nome}</span>
+                  <Badge stato={p.risposta} />
                 </div>
-                <Badge stato={p.risposta} />
+                {/* Admin controls */}
+                <div style={{ display: "flex", gap: 6, marginLeft: 42 }}>
+                  <button onClick={() => handleRispondi(torneo.id, p.nome, "confermato")}
+                    style={{ padding: "5px 12px", background: p.risposta === "confermato" ? "#16a34a" : "#f0fdf4", color: p.risposta === "confermato" ? "#fff" : "#16a34a", border: "1.5px solid #16a34a", borderRadius: 8, fontWeight: 700, fontSize: 11, cursor: "pointer" }}>
+                    ✓ Conferma
+                  </button>
+                  <button onClick={() => handleRispondi(torneo.id, p.nome, "in attesa")}
+                    style={{ padding: "5px 12px", background: p.risposta === "in attesa" ? "#f59e0b" : "#fefce8", color: p.risposta === "in attesa" ? "#fff" : "#d97706", border: "1.5px solid #f59e0b", borderRadius: 8, fontWeight: 700, fontSize: 11, cursor: "pointer" }}>
+                    ◷ In attesa
+                  </button>
+                  <button onClick={() => handleRispondi(torneo.id, p.nome, "rifiutato")}
+                    style={{ padding: "5px 12px", background: p.risposta === "rifiutato" ? "#dc2626" : "#fff1f2", color: p.risposta === "rifiutato" ? "#fff" : "#dc2626", border: "1.5px solid #dc2626", borderRadius: 8, fontWeight: 700, fontSize: 11, cursor: "pointer" }}>
+                    ✗ Rifiuta
+                  </button>
+                </div>
               </div>
             ))
           }
@@ -1004,6 +1047,250 @@ function AdminCalendar({ tornei, onViewTorneo, onNewTorneo, onShowGiocatori, gio
   );
 }
 
+
+// ── Login Coach ─────────────────────────────────────────────────
+function LoginCoach({ onLogin }) {
+  const [nome, setNome] = useState("");
+  const [pin, setPin] = useState("");
+  const [errore, setErrore] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async () => {
+    if (!nome.trim() || !pin.trim()) { setErrore("Inserisci nome e PIN."); return; }
+    setLoading(true);
+    setErrore("");
+    const { data } = await supabase.from("coach").select("*")
+      .ilike("nome", nome.trim()).eq("pin", pin.trim()).single();
+    if (data) { onLogin(data); }
+    else { setErrore("Nome o PIN non corretti. Contatta l'admin."); }
+    setLoading(false);
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#f0fdf4", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, fontFamily: "'Inter', sans-serif" }}>
+      <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
+      <div style={{ background: "#fff", borderRadius: 24, padding: 40, width: "100%", maxWidth: 400, boxShadow: "0 20px 60px rgba(0,0,0,0.08)", border: "1.5px solid #e5e7eb" }}>
+        <div style={{ textAlign: "center", marginBottom: 32 }}>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>🎓</div>
+          <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 900, color: "#14532d", margin: "0 0 4px" }}>Area Coach</h1>
+          <p style={{ color: "#6b7280", fontSize: 13, margin: 0 }}>Piatti Tennis Center</p>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div>
+            <label style={{ fontSize: 13, fontWeight: 700, color: "#374151", display: "block", marginBottom: 6 }}>Il tuo nome</label>
+            <input value={nome} onChange={e => setNome(e.target.value)} placeholder="es. Carlo Ferri"
+              style={{ width: "100%", padding: "11px 14px", borderRadius: 10, border: "1.5px solid #d1d5db", fontSize: 14, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
+          </div>
+          <div>
+            <label style={{ fontSize: 13, fontWeight: 700, color: "#374151", display: "block", marginBottom: 6 }}>PIN</label>
+            <input value={pin} onChange={e => setPin(e.target.value)} type="password" placeholder="••••"
+              onKeyDown={e => e.key === "Enter" && handleLogin()}
+              style={{ width: "100%", padding: "11px 14px", borderRadius: 10, border: "1.5px solid #d1d5db", fontSize: 14, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
+          </div>
+          {errore && <div style={{ background: "#fee2e2", color: "#7f1d1d", padding: "10px 14px", borderRadius: 10, fontSize: 13, fontWeight: 600 }}>⚠️ {errore}</div>}
+          <button onClick={handleLogin} disabled={loading}
+            style={{ padding: "13px", background: "linear-gradient(135deg, #14532d, #16a34a)", color: "#fff", border: "none", borderRadius: 12, fontSize: 15, fontWeight: 800, cursor: "pointer", marginTop: 4 }}>
+            {loading ? "Accesso..." : "Accedi →"}
+          </button>
+        </div>
+        <p style={{ textAlign: "center", color: "#9ca3af", fontSize: 12, marginTop: 20 }}>Non hai le credenziali? Contatta l'admin.</p>
+      </div>
+    </div>
+  );
+}
+
+// ── Profilo Coach ───────────────────────────────────────────────
+function ProfiloCoach({ coach, tornei, onLogout }) {
+  const [selectedTorneo, setSelectedTorneo] = useState(null);
+  const mieiTornei = tornei.filter(t => t.coach_id === coach.id);
+
+  if (selectedTorneo) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#f0fdf4", fontFamily: "'Inter', sans-serif" }}>
+        <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
+        <header style={{ background: "#fff", borderBottom: "1px solid #e5e7eb", position: "sticky", top: 0, zIndex: 100 }}>
+          <div style={{ maxWidth: 800, margin: "0 auto", padding: "0 20px", display: "flex", alignItems: "center", height: 64 }}>
+            <button onClick={() => setSelectedTorneo(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#6b7280", fontSize: 14, fontWeight: 700, padding: 0 }}>← Torna al profilo</button>
+          </div>
+        </header>
+        <main style={{ maxWidth: 700, margin: "0 auto", padding: "32px 20px" }}>
+          <div style={{ background: "#fff", borderRadius: 20, border: "1.5px solid #e5e7eb", overflow: "hidden" }}>
+            <div style={{ background: "linear-gradient(135deg, #14532d, #16a34a)", padding: "32px", color: "#fff" }}>
+              <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 2, opacity: 0.7, marginBottom: 8 }}>{selectedTorneo.categoria.toUpperCase()}</div>
+              <h2 style={{ margin: "0 0 12px", fontFamily: "'Playfair Display', serif", fontSize: 26, fontWeight: 900 }}>{selectedTorneo.nome}</h2>
+              <div style={{ opacity: 0.85, fontSize: 14, lineHeight: 1.8 }}>
+                <div>📅 {new Date(selectedTorneo.data).toLocaleDateString("it-IT", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</div>
+                <div>📍 {selectedTorneo.luogo}</div>
+                <div>⏰ Iscrizioni entro: {new Date(selectedTorneo.scadenza_iscrizione).toLocaleDateString("it-IT")}</div>
+              </div>
+            </div>
+            <div style={{ padding: 28 }}>
+              {selectedTorneo.descrizione && <p style={{ color: "#4b5563", marginTop: 0, lineHeight: 1.7, borderLeft: "3px solid #16a34a", paddingLeft: 14 }}>{selectedTorneo.descrizione}</p>}
+              <h4 style={{ margin: "0 0 12px", color: "#374151", fontSize: 14, fontWeight: 800, letterSpacing: 1 }}>GIOCATORI ISCRITTI</h4>
+              {(selectedTorneo.partecipanti || []).length === 0
+                ? <p style={{ color: "#9ca3af", fontStyle: "italic" }}>Nessun giocatore ancora.</p>
+                : (selectedTorneo.partecipanti || []).map((p, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid #f3f4f6" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg, #16a34a, #4ade80)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 13, fontWeight: 800 }}>
+                        {p.nome.charAt(0).toUpperCase()}
+                      </div>
+                      <span style={{ fontWeight: 600, color: "#111827" }}>{p.nome}</span>
+                    </div>
+                    <Badge stato={p.risposta} />
+                  </div>
+                ))
+              }
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#f0fdf4", fontFamily: "'Inter', sans-serif" }}>
+      <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
+      <header style={{ background: "#fff", borderBottom: "1px solid #e5e7eb", position: "sticky", top: 0, zIndex: 100 }}>
+        <div style={{ maxWidth: 800, margin: "0 auto", padding: "0 20px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 64 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 24 }}>🎾</span>
+            <div>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontWeight: 900, fontSize: 14, color: "#14532d", lineHeight: 1 }}>PIATTI TENNIS CENTER</div>
+              <div style={{ fontSize: 10, color: "#16a34a", fontWeight: 700, letterSpacing: 1 }}>SCHEDULE TOURNAMENTS</div>
+            </div>
+          </div>
+          <button onClick={onLogout} style={{ padding: "7px 14px", background: "#f3f4f6", color: "#374151", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Esci</button>
+        </div>
+      </header>
+      <main style={{ maxWidth: 800, margin: "0 auto", padding: "32px 20px" }}>
+        <div style={{ background: "linear-gradient(135deg, #14532d, #16a34a)", borderRadius: 16, padding: "24px 28px", marginBottom: 28, color: "#fff", display: "flex", alignItems: "center", gap: 16 }}>
+          <div style={{ width: 56, height: 56, borderRadius: "50%", background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, fontWeight: 900, flexShrink: 0 }}>
+            {coach.nome.charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <div style={{ fontSize: 20, fontWeight: 900, fontFamily: "'Playfair Display', serif" }}>🎓 {coach.nome}</div>
+            <div style={{ opacity: 0.85, fontSize: 13, marginTop: 2 }}>{mieiTornei.length} torneo/i assegnato/i</div>
+          </div>
+        </div>
+
+        <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, color: "#111827", margin: "0 0 16px" }}>I tuoi tornei</h3>
+
+        {mieiTornei.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "48px 0", color: "#9ca3af" }}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>🎾</div>
+            <div style={{ fontSize: 15, fontWeight: 600 }}>Nessun torneo assegnato ancora.</div>
+          </div>
+        ) : (
+          mieiTornei.map(t => {
+            const confermati = (t.partecipanti || []).filter(p => p.risposta === "confermato").length;
+            const inAttesa = (t.partecipanti || []).filter(p => p.risposta === "in attesa").length;
+            const oggi = new Date().toISOString().split("T")[0];
+            const scaduto = t.scadenza_iscrizione < oggi;
+            return (
+              <div key={t.id} onClick={() => setSelectedTorneo(t)}
+                style={{ background: "#fff", border: "1.5px solid #e5e7eb", borderRadius: 14, padding: 20, marginBottom: 14, cursor: "pointer", transition: "all 0.2s", position: "relative", overflow: "hidden" }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = "#16a34a"; e.currentTarget.style.transform = "translateY(-2px)"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = "#e5e7eb"; e.currentTarget.style.transform = ""; }}>
+                <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: scaduto ? "#d1d5db" : "linear-gradient(90deg, #16a34a, #4ade80)" }} />
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                  <h4 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "#111827", fontFamily: "'Playfair Display', serif" }}>{t.nome}</h4>
+                  {scaduto && <span style={{ background: "#f3f4f6", color: "#6b7280", fontSize: 11, padding: "3px 8px", borderRadius: 8, fontWeight: 700 }}>CHIUSO</span>}
+                </div>
+                <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 12 }}>
+                  <div>📅 {new Date(t.data).toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</div>
+                  <div>📍 {t.luogo} · 🎾 {t.categoria}</div>
+                </div>
+                <div style={{ display: "flex", gap: 12, borderTop: "1px solid #f3f4f6", paddingTop: 12 }}>
+                  <div style={{ textAlign: "center" }}>
+                    <div style={{ fontSize: 20, fontWeight: 900, color: "#16a34a" }}>{confermati}</div>
+                    <div style={{ fontSize: 10, color: "#9ca3af", fontWeight: 600 }}>CONFERMATI</div>
+                  </div>
+                  <div style={{ textAlign: "center" }}>
+                    <div style={{ fontSize: 20, fontWeight: 900, color: "#f59e0b" }}>{inAttesa}</div>
+                    <div style={{ fontSize: 10, color: "#9ca3af", fontWeight: 600 }}>IN ATTESA</div>
+                  </div>
+                  <div style={{ textAlign: "center" }}>
+                    <div style={{ fontSize: 20, fontWeight: 900, color: "#6b7280" }}>{(t.partecipanti || []).length}</div>
+                    <div style={{ fontSize: 10, color: "#9ca3af", fontWeight: 600 }}>TOTALE</div>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </main>
+    </div>
+  );
+}
+
+// ── Gestione Coach (Admin) ──────────────────────────────────────
+function GestioneCoach({ coach, onAggiungi, onElimina, onBack }) {
+  const [nome, setNome] = useState("");
+  const [pin, setPin] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleAggiungi = async () => {
+    if (!nome.trim() || !pin.trim()) return alert("Inserisci nome e PIN.");
+    if (pin.length < 4) return alert("Il PIN deve avere almeno 4 cifre.");
+    setLoading(true);
+    await onAggiungi(nome.trim(), pin.trim());
+    setNome(""); setPin("");
+    setLoading(false);
+  };
+
+  return (
+    <div style={{ maxWidth: 600, margin: "0 auto" }}>
+      <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", cursor: "pointer", color: "#6b7280", fontSize: 14, fontWeight: 700, marginBottom: 20, padding: 0 }}>
+        ← Torna ai tornei
+      </button>
+      <div style={{ background: "#fff", borderRadius: 20, border: "1.5px solid #e5e7eb", padding: 28, marginBottom: 20 }}>
+        <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, color: "#111827", margin: "0 0 20px" }}>🎓 Gestione Coach</h2>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+          <div>
+            <label style={{ fontSize: 13, fontWeight: 700, color: "#374151", display: "block", marginBottom: 6 }}>Nome coach</label>
+            <input value={nome} onChange={e => setNome(e.target.value)} placeholder="es. Carlo Ferri"
+              style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1.5px solid #d1d5db", fontSize: 14, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
+          </div>
+          <div>
+            <label style={{ fontSize: 13, fontWeight: 700, color: "#374151", display: "block", marginBottom: 6 }}>PIN (min. 4 cifre)</label>
+            <input value={pin} onChange={e => setPin(e.target.value)} placeholder="es. 1234" maxLength={8}
+              style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1.5px solid #d1d5db", fontSize: 14, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
+          </div>
+        </div>
+        <button onClick={handleAggiungi} disabled={loading}
+          style={{ width: "100%", padding: 12, background: "linear-gradient(135deg, #14532d, #16a34a)", color: "#fff", border: "none", borderRadius: 12, fontWeight: 800, fontSize: 14, cursor: "pointer" }}>
+          {loading ? "..." : "+ Aggiungi Coach"}
+        </button>
+      </div>
+      <div style={{ background: "#fff", borderRadius: 20, border: "1.5px solid #e5e7eb", padding: 28 }}>
+        <h3 style={{ fontSize: 15, fontWeight: 800, color: "#374151", margin: "0 0 16px" }}>Coach registrati ({coach.length})</h3>
+        {coach.length === 0 ? (
+          <p style={{ color: "#9ca3af", fontStyle: "italic" }}>Nessun coach ancora.</p>
+        ) : (
+          coach.map(c => (
+            <div key={c.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid #f3f4f6" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 36, height: 36, borderRadius: "50%", background: "linear-gradient(135deg, #14532d, #16a34a)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 14, fontWeight: 800 }}>
+                  {c.nome.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <div style={{ fontWeight: 700, color: "#111827" }}>{c.nome}</div>
+                  <div style={{ fontSize: 12, color: "#9ca3af" }}>PIN: {c.pin}</div>
+                </div>
+              </div>
+              <button onClick={() => { if (window.confirm(`Eliminare ${c.nome}?`)) onElimina(c.id); }}
+                style={{ padding: "6px 12px", background: "#fee2e2", color: "#7f1d1d", border: "none", borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+                🗑️
+              </button>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Main App ────────────────────────────────────────────────────
 export default function App() {
   const [tornei, setTornei] = useState([]);
@@ -1016,6 +1303,9 @@ export default function App() {
   const [showForm, setShowForm] = useState(false);
   const [editTorneo, setEditTorneo] = useState(null);
   const [showGiocatori, setShowGiocatori] = useState(false);
+  const [showCoach, setShowCoach] = useState(false);
+  const [coach, setCoach] = useState([]);
+  const [coachLoggato, setCoachLoggato] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
 
   const caricaDati = async () => {
@@ -1024,6 +1314,7 @@ export default function App() {
     const { data: partData } = await supabase.from("partecipanti").select("*");
     const { data: giocatoriData } = await supabase.from("giocatori").select("*").order("nome");
     const { data: gruppiData } = await supabase.from("giocatore_gruppi").select("*");
+    const { data: coachData } = await supabase.from("coach").select("*").order("nome");
     const torneiConPart = (torneiData || []).map(t => ({
       ...t,
       partecipanti: (partData || []).filter(p => p.torneo_id === t.id),
@@ -1035,6 +1326,7 @@ export default function App() {
     }));
     setTornei(torneiConPart);
     setGiocatori(giocatoriConGruppi);
+    setCoach(coachData || []);
     setLoading(false);
   };
 
@@ -1096,6 +1388,16 @@ export default function App() {
     }
   };
 
+  const aggiungiCoach = async (nome, pin) => {
+    await supabase.from("coach").insert([{ nome, pin }]);
+    await caricaDati();
+  };
+
+  const eliminaCoach = async (id) => {
+    await supabase.from("coach").delete().eq("id", id);
+    await caricaDati();
+  };
+
   const eliminaGiocatore = async (id) => {
     await supabase.from("giocatori").delete().eq("id", id);
     await caricaDati();
@@ -1118,6 +1420,16 @@ export default function App() {
     );
   }
 
+  // Login coach
+  if (view === "coach" && !coachLoggato) {
+    return <LoginCoach onLogin={(c) => setCoachLoggato(c)} />;
+  }
+
+  // Profilo coach
+  if (view === "coach" && coachLoggato) {
+    return <ProfiloCoach coach={coachLoggato} tornei={tornei} onLogout={() => { setCoachLoggato(null); setView("welcome"); }} />;
+  }
+
   // Login giocatore
   if (view === "giocatore" && !giocatoreLoggato) {
     return <LoginGiocatore onLogin={(g) => setGiocatoreLoggato(g)} />;
@@ -1129,6 +1441,7 @@ export default function App() {
       <WelcomeScreen
         onScegliAdmin={() => setView("admin")}
         onScegliGiocatore={() => setView("giocatore")}
+        onScegliCoach={() => setView("coach")}
       />
     );
   }
@@ -1172,7 +1485,9 @@ export default function App() {
 
       <main style={{ maxWidth: 800, margin: "0 auto", padding: "32px 20px" }}>
         {showForm ? (
-          <AdminNewTorneo torneoEdit={editTorneo} giocatori={giocatori} onSave={saveTorneo} onCancel={() => { setShowForm(false); setEditTorneo(null); }} />
+          <AdminNewTorneo torneoEdit={editTorneo} giocatori={giocatori} coach={coach} onSave={saveTorneo} onCancel={() => { setShowForm(false); setEditTorneo(null); }} />
+        ) : showCoach ? (
+          <GestioneCoach coach={coach} onAggiungi={aggiungiCoach} onElimina={eliminaCoach} onBack={() => setShowCoach(false)} />
         ) : showGiocatori ? (
           <GestioneGiocatori giocatori={giocatori} onAggiungi={aggiungiGiocatore} onElimina={eliminaGiocatore} onToggleGruppo={toggleGruppo} onBack={() => setShowGiocatori(false)} />
         ) : selectedTorneo ? (
