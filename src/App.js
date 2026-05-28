@@ -629,16 +629,28 @@ function AdminNewTorneo({ onSave, onCancel, torneoEdit, giocatori, coach }) {
           <textarea value={form.descrizione} rows={3} onChange={e => handleChange("descrizione", e.target.value)}
             style={{ padding: "10px 14px", borderRadius: 10, border: "1.5px solid #d1d5db", fontSize: 14, fontFamily: "inherit", resize: "vertical" }} />
         </label>
-        <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: "#374151" }}>🎓 Coach accompagnatore</span>
-          <select value={form.coach_id || ""} onChange={e => handleChange("coach_id", e.target.value ? parseInt(e.target.value) : null)}
-            style={{ padding: "10px 14px", borderRadius: 10, border: "1.5px solid #d1d5db", fontSize: 14, fontFamily: "inherit" }}>
-            <option value="">— Nessun coach —</option>
-            {(coach || []).map(c => (
-              <option key={c.id} value={c.id}>{c.nome}</option>
-            ))}
-          </select>
-        </label>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "#374151" }}>🎓 Coach 1</span>
+            <select value={form.coach_id || ""} onChange={e => handleChange("coach_id", e.target.value ? parseInt(e.target.value) : null)}
+              style={{ padding: "10px 14px", borderRadius: 10, border: "1.5px solid #d1d5db", fontSize: 14, fontFamily: "inherit" }}>
+              <option value="">— Nessuno —</option>
+              {(coach || []).map(c => (
+                <option key={c.id} value={c.id}>{c.nome}</option>
+              ))}
+            </select>
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "#374151" }}>🎓 Coach 2</span>
+            <select value={form.coach_id_2 || ""} onChange={e => handleChange("coach_id_2", e.target.value ? parseInt(e.target.value) : null)}
+              style={{ padding: "10px 14px", borderRadius: 10, border: "1.5px solid #d1d5db", fontSize: 14, fontFamily: "inherit" }}>
+              <option value="">— Nessuno —</option>
+              {(coach || []).filter(c => c.id !== form.coach_id).map(c => (
+                <option key={c.id} value={c.id}>{c.nome}</option>
+              ))}
+            </select>
+          </label>
+        </div>
 
         {/* Partecipanti */}
         <div style={{ borderTop: "1.5px solid #e5e7eb", paddingTop: 20 }}>
@@ -852,7 +864,7 @@ const CAT_COLORS = {
   "ITF 15,25k F": "#db2777", "Challenger": "#dc2626",
 };
 
-function AdminCalendar({ tornei, onViewTorneo, onNewTorneo, onShowGiocatori, onShowCoach, giocatori }) {
+function AdminCalendar({ tornei, onViewTorneo, onNewTorneo, onShowGiocatori, onShowCoach, onShowSearch, giocatori }) {
   const today = new Date();
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
@@ -889,6 +901,10 @@ function AdminCalendar({ tornei, onViewTorneo, onNewTorneo, onShowGiocatori, onS
           {calView === "month" ? "📅 Vista Settimana" : "📆 Vista Mese"}
         </button>
         <div style={{ flex: 1 }} />
+        <button onClick={() => onShowSearch && onShowSearch()}
+          style={{ padding: "10px 16px", background: "#fff", color: "#374151", border: "1.5px solid #e5e7eb", borderRadius: 12, fontWeight: 800, fontSize: 13, cursor: "pointer" }}>
+          🔍 Cerca
+        </button>
         <button onClick={() => onShowCoach && onShowCoach()}
           style={{ padding: "10px 16px", background: "#fff", color: "#14532d", border: "1.5px solid #16a34a", borderRadius: 12, fontWeight: 800, fontSize: 13, cursor: "pointer" }}>
           🎓 Coach
@@ -1295,6 +1311,125 @@ function GestioneCoach({ coach, onAggiungi, onElimina, onBack }) {
   );
 }
 
+
+// ── Search Panel ────────────────────────────────────────────────
+function SearchPanel({ tornei, giocatori, coach, onViewTorneo, onBack }) {
+  const [query, setQuery] = useState("");
+  const [tipo, setTipo] = useState("tutti"); // tutti | giocatore | coach
+
+  const risultati = query.trim().length < 2 ? [] : (() => {
+    const q = query.toLowerCase();
+    const torneiTrovati = [];
+
+    tornei.forEach(t => {
+      let match = false;
+      let motivo = "";
+
+      if (tipo === "tutti" || tipo === "giocatore") {
+        const part = (t.partecipanti || []).find(p => p.nome.toLowerCase().includes(q));
+        if (part) { match = true; motivo = `👤 ${part.nome}`; }
+      }
+
+      if (tipo === "tutti" || tipo === "coach") {
+        if (t.maestro && t.maestro.toLowerCase().includes(q)) {
+          match = true; motivo = `🎓 ${t.maestro}`;
+        }
+      }
+
+      if (match) torneiTrovati.push({ ...t, motivo });
+    });
+
+    return torneiTrovati;
+  })();
+
+  return (
+    <div style={{ maxWidth: 700, margin: "0 auto" }}>
+      <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", cursor: "pointer", color: "#6b7280", fontSize: 14, fontWeight: 700, marginBottom: 20, padding: 0 }}>
+        ← Torna al calendario
+      </button>
+
+      <div style={{ background: "#fff", borderRadius: 20, border: "1.5px solid #e5e7eb", padding: 24, marginBottom: 16 }}>
+        <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, color: "#111827", margin: "0 0 20px" }}>🔍 Cerca Impegni</h2>
+
+        {/* Filter tabs */}
+        <div style={{ display: "flex", background: "#f3f4f6", borderRadius: 12, padding: 4, gap: 4, marginBottom: 16 }}>
+          {[
+            { key: "tutti", label: "Tutti" },
+            { key: "giocatore", label: "👤 Giocatore" },
+            { key: "coach", label: "🎓 Coach" },
+          ].map(({ key, label }) => (
+            <button key={key} onClick={() => setTipo(key)}
+              style={{ flex: 1, padding: "8px", borderRadius: 9, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 13, background: tipo === key ? "#fff" : "transparent", color: tipo === key ? "#16a34a" : "#6b7280", boxShadow: tipo === key ? "0 1px 4px rgba(0,0,0,0.08)" : "none" }}>
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Search input */}
+        <div style={{ position: "relative" }}>
+          <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", fontSize: 18 }}>🔍</span>
+          <input
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder={tipo === "coach" ? "Nome del coach..." : tipo === "giocatore" ? "Nome del giocatore..." : "Nome giocatore o coach..."}
+            autoFocus
+            style={{ width: "100%", padding: "12px 14px 12px 44px", borderRadius: 12, border: "1.5px solid #d1d5db", fontSize: 15, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
+          />
+        </div>
+      </div>
+
+      {/* Results */}
+      {query.trim().length >= 2 && (
+        <div>
+          {risultati.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "40px 0", color: "#9ca3af" }}>
+              <div style={{ fontSize: 36, marginBottom: 10 }}>🎾</div>
+              <div style={{ fontSize: 15, fontWeight: 600 }}>Nessun risultato trovato per "{query}"</div>
+            </div>
+          ) : (
+            <>
+              <div style={{ fontSize: 13, color: "#6b7280", fontWeight: 600, marginBottom: 12 }}>
+                {risultati.length} torneo/i trovato/i per "{query}"
+              </div>
+              {risultati.map(t => {
+                const confermati = (t.partecipanti || []).filter(p => p.risposta === "confermato").length;
+                const inAttesa = (t.partecipanti || []).filter(p => p.risposta === "in attesa").length;
+                const scaduto = t.scadenza_iscrizione < new Date().toISOString().split("T")[0];
+                return (
+                  <div key={t.id} onClick={() => onViewTorneo(t)}
+                    style={{ background: "#fff", border: "1.5px solid #e5e7eb", borderRadius: 14, padding: 20, marginBottom: 12, cursor: "pointer", transition: "all 0.2s" }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = "#16a34a"; e.currentTarget.style.transform = "translateY(-2px)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = "#e5e7eb"; e.currentTarget.style.transform = ""; }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                      <h4 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "#111827", fontFamily: "'Playfair Display', serif" }}>{t.nome}</h4>
+                      {scaduto && <span style={{ background: "#f3f4f6", color: "#6b7280", fontSize: 11, padding: "3px 8px", borderRadius: 8, fontWeight: 700 }}>CHIUSO</span>}
+                    </div>
+                    <div style={{ fontSize: 12, color: "#c8a96e", fontWeight: 700, marginBottom: 8 }}>{t.motivo}</div>
+                    <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 10 }}>
+                      <div>📅 {new Date(t.data).toLocaleDateString("it-IT", { weekday: "short", day: "numeric", month: "long", year: "numeric" })}</div>
+                      <div>📍 {t.luogo} · 🎾 {t.categoria}</div>
+                    </div>
+                    <div style={{ display: "flex", gap: 12, borderTop: "1px solid #f3f4f6", paddingTop: 10 }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: "#16a34a" }}>✓ {confermati} confermati</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: "#f59e0b" }}>◷ {inAttesa} in attesa</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </>
+          )}
+        </div>
+      )}
+
+      {query.trim().length > 0 && query.trim().length < 2 && (
+        <div style={{ textAlign: "center", padding: "20px 0", color: "#9ca3af", fontSize: 13 }}>
+          Inserisci almeno 2 caratteri per cercare
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main App ────────────────────────────────────────────────────
 export default function App() {
   const [tornei, setTornei] = useState([]);
@@ -1308,6 +1443,7 @@ export default function App() {
   const [editTorneo, setEditTorneo] = useState(null);
   const [showGiocatori, setShowGiocatori] = useState(false);
   const [showCoach, setShowCoach] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
   const [coach, setCoach] = useState([]);
   const [coachLoggato, setCoachLoggato] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -1490,6 +1626,8 @@ export default function App() {
       <main style={{ maxWidth: 800, margin: "0 auto", padding: "32px 20px" }}>
         {showForm ? (
           <AdminNewTorneo torneoEdit={editTorneo} giocatori={giocatori} coach={coach} onSave={saveTorneo} onCancel={() => { setShowForm(false); setEditTorneo(null); }} />
+        ) : showSearch ? (
+          <SearchPanel tornei={tornei} giocatori={giocatori} coach={coach} onViewTorneo={(t) => { setSelectedTorneo(t); setShowSearch(false); }} onBack={() => setShowSearch(false)} />
         ) : showCoach ? (
           <GestioneCoach coach={coach} onAggiungi={aggiungiCoach} onElimina={eliminaCoach} onBack={() => setShowCoach(false)} />
         ) : showGiocatori ? (
@@ -1506,6 +1644,7 @@ export default function App() {
             onNewTorneo={() => { setShowForm(true); setEditTorneo(null); }}
             onShowGiocatori={() => setShowGiocatori(true)}
             onShowCoach={() => setShowCoach(true)}
+            onShowSearch={() => setShowSearch(true)}
           />
         )}
       </main>
