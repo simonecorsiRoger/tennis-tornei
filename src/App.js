@@ -852,7 +852,7 @@ const CAT_COLORS = {
   "ITF 15,25k F": "#db2777", "Challenger": "#dc2626",
 };
 
-function AdminCalendar({ tornei, onViewTorneo, onNewTorneo, onShowGiocatori, giocatori }) {
+function AdminCalendar({ tornei, onViewTorneo, onNewTorneo, onShowGiocatori, onShowCoach, giocatori }) {
   const today = new Date();
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
@@ -889,6 +889,10 @@ function AdminCalendar({ tornei, onViewTorneo, onNewTorneo, onShowGiocatori, gio
           {calView === "month" ? "📅 Vista Settimana" : "📆 Vista Mese"}
         </button>
         <div style={{ flex: 1 }} />
+        <button onClick={() => onShowCoach && onShowCoach()}
+          style={{ padding: "10px 16px", background: "#fff", color: "#14532d", border: "1.5px solid #16a34a", borderRadius: 12, fontWeight: 800, fontSize: 13, cursor: "pointer" }}>
+          🎓 Coach
+        </button>
         <button onClick={() => onShowGiocatori()}
           style={{ padding: "10px 16px", background: "#fff", color: "#14532d", border: "1.5px solid #16a34a", borderRadius: 12, fontWeight: 800, fontSize: 13, cursor: "pointer" }}>
           👥 Giocatori ({giocatori.length})
@@ -1501,6 +1505,7 @@ export default function App() {
             onViewTorneo={setSelectedTorneo}
             onNewTorneo={() => { setShowForm(true); setEditTorneo(null); }}
             onShowGiocatori={() => setShowGiocatori(true)}
+            onShowCoach={() => setShowCoach(true)}
           />
         )}
       </main>
