@@ -1474,12 +1474,23 @@ export default function App() {
 
   const saveTorneo = async (form) => {
     const { partecipanti, ...dati } = form;
+    const coachSelezionato = coach.find(c => c.id === parseInt(dati.coach_id));
+    const coach2Selezionato = coach.find(c => c.id === parseInt(dati.coach_id_2));
+    const maestroNomi = [coachSelezionato?.nome, coach2Selezionato?.nome].filter(Boolean).join(", ");
+    const torneoPayload = {
+      nome: dati.nome, data: dati.data, luogo: dati.luogo, categoria: dati.categoria,
+      max_partecipanti: dati.max_partecipanti, scadenza_iscrizione: dati.scadenza_iscrizione,
+      descrizione: dati.descrizione,
+      maestro: maestroNomi || dati.maestro || "",
+      coach_id: coachSelezionato ? coachSelezionato.id : null,
+      coach_id_2: coach2Selezionato ? coach2Selezionato.id : null,
+    };
     if (editTorneo) {
-      await supabase.from("tornei").update({ nome: dati.nome, data: dati.data, luogo: dati.luogo, categoria: dati.categoria, max_partecipanti: dati.max_partecipanti, scadenza_iscrizione: dati.scadenza_iscrizione, descrizione: dati.descrizione, maestro: dati.maestro }).eq("id", editTorneo.id);
+      await supabase.from("tornei").update(torneoPayload).eq("id", editTorneo.id);
       await supabase.from("partecipanti").delete().eq("torneo_id", editTorneo.id);
       if (partecipanti.length > 0) await supabase.from("partecipanti").insert(partecipanti.map(p => ({ torneo_id: editTorneo.id, nome: p.nome, risposta: p.risposta })));
     } else {
-      const { data: newT } = await supabase.from("tornei").insert([{ nome: dati.nome, data: dati.data, luogo: dati.luogo, categoria: dati.categoria, max_partecipanti: dati.max_partecipanti, scadenza_iscrizione: dati.scadenza_iscrizione, descrizione: dati.descrizione, maestro: dati.maestro }]).select().single();
+      const { data: newT } = await supabase.from("tornei").insert([torneoPayload]).select().single();
       if (newT && partecipanti.length > 0) await supabase.from("partecipanti").insert(partecipanti.map(p => ({ torneo_id: newT.id, nome: p.nome, risposta: p.risposta })));
     }
     await caricaDati();
