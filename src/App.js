@@ -1112,33 +1112,41 @@ function LoginCoach({ onLogin }) {
 
 // ── Profilo Coach ───────────────────────────────────────────────
 function ProfiloCoach({ tornei, onLogout }) {
+  const todayDate = new Date();
+  const [year, setYear] = useState(todayDate.getFullYear());
+  const [month, setMonth] = useState(todayDate.getMonth());
+  const [calView, setCalView] = useState("month");
   const [selectedTorneo, setSelectedTorneo] = useState(null);
 
-  const today = new Date();
-  const [currentYear, setCurrentYear] = useState(today.getFullYear());
-  const [currentMonth, setCurrentMonth] = useState(today.getMonth());
-  const [calView, setCalView] = useState("month");
+  const prevMonth = () => {
+    if (month === 0) { setMonth(11); setYear(y => y - 1); }
+    else setMonth(m => m - 1);
+  };
+  const nextMonth = () => {
+    if (month === 11) { setMonth(0); setYear(y => y + 1); }
+    else setMonth(m => m + 1);
+  };
 
-  const calDays = getCalendarDays(currentYear, currentMonth);
+  const safeTornei = Array.isArray(tornei) ? tornei : [];
+  const pad = (n) => String(n).padStart(2, "0");
+  const monthStr = `${year}-${pad(month + 1)}`;
+
+  const getTorneiGiorno = (day) => {
+    if (!day) return [];
+    const ds = `${monthStr}-${pad(day)}`;
+    return safeTornei.filter(t => t && t.data === ds);
+  };
+
+  const torneiMese = safeTornei.filter(t => t && t.data && t.data.startsWith(monthStr));
+
+  const calDays = getCalendarDays(year, month);
   const weeks = [];
   for (let i = 0; i < calDays.length; i += 7) weeks.push(calDays.slice(i, i + 7));
 
-  const safeTornei = Array.isArray(tornei) ? tornei : [];
-  const monthStr = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}`;
-
-  const torneiDelGiorno = (day) => {
-    if (!day) return [];
-    const dateStr = `${monthStr}-${String(day).padStart(2, "0")}`;
-    return safeTornei.filter(t => t && t.data === dateStr);
-  };
-
-  const torneiDelMese = safeTornei.filter(t => t && t.data && t.data.startsWith(monthStr));
-
-  const isToday = (day) => day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear();
-  const prevMonth = () => { if (currentMonth === 0) { setCurrentMonth(11); setCurrentYear(y => y - 1); } else setCurrentMonth(m => m - 1); };
-  const nextMonth = () => { if (currentMonth === 11) { setCurrentMonth(0); setCurrentYear(y => y + 1); } else setCurrentMonth(m => m + 1); };
+  const isToday = (day) => day && day === todayDate.getDate() && month === todayDate.getMonth() && year === todayDate.getFullYear();
   const getColor = (t) => CAT_COLORS[t.categoria] || "#16a34a";
 
+  // Torneo detail view
   if (selectedTorneo) {
     return (
       <div style={{ minHeight: "100vh", background: "#f0fdf4", fontFamily: "'Inter', sans-serif" }}>
@@ -1197,6 +1205,7 @@ function ProfiloCoach({ tornei, onLogout }) {
     );
   }
 
+  // Calendar view
   return (
     <div style={{ minHeight: "100vh", background: "#f0fdf4", fontFamily: "'Inter', sans-serif" }}>
       <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
@@ -1215,25 +1224,25 @@ function ProfiloCoach({ tornei, onLogout }) {
 
       <main style={{ maxWidth: 800, margin: "0 auto", padding: "24px 16px" }}>
 
-        {/* View toggle */}
+        {/* Top bar */}
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 14 }}>
-          <button onClick={() => setCalView(calView === "month" ? "week" : "month")}
+          <button onClick={() => setCalView(v => v === "month" ? "week" : "month")}
             style={{ padding: "8px 14px", background: "#fff", border: "1.5px solid #e5e7eb", borderRadius: 10, fontWeight: 700, fontSize: 12, cursor: "pointer", color: "#374151" }}>
             {calView === "month" ? "📅 Vista Settimana" : "📆 Vista Mese"}
           </button>
         </div>
 
-        {/* Month navigation */}
+        {/* Month nav */}
         <div style={{ background: "#fff", borderRadius: 14, padding: "12px 18px", marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between", border: "1.5px solid #e5e7eb" }}>
-          <button onClick={prevMonth} style={{ width: 34, height: 34, borderRadius: "50%", border: "1.5px solid #e5e7eb", background: "#fff", cursor: "pointer", fontSize: 16 }}>‹</button>
+          <button onClick={prevMonth} style={{ width: 34, height: 34, borderRadius: "50%", border: "1.5px solid #e5e7eb", background: "#fff", cursor: "pointer", fontSize: 18 }}>‹</button>
           <div style={{ textAlign: "center" }}>
-            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 900, color: "#111827" }}>{MONTHS_IT[currentMonth]}</div>
-            <div style={{ fontSize: 11, color: "#9ca3af" }}>{currentYear} · {torneiDelMese.length} torneo/i</div>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 900, color: "#111827" }}>{MONTHS_IT[month]}</div>
+            <div style={{ fontSize: 11, color: "#9ca3af" }}>{year} · {torneiMese.length} torneo/i</div>
           </div>
-          <button onClick={nextMonth} style={{ width: 34, height: 34, borderRadius: "50%", border: "1.5px solid #e5e7eb", background: "#fff", cursor: "pointer", fontSize: 16 }}>›</button>
+          <button onClick={nextMonth} style={{ width: 34, height: 34, borderRadius: "50%", border: "1.5px solid #e5e7eb", background: "#fff", cursor: "pointer", fontSize: 18 }}>›</button>
         </div>
 
-        {/* Calendar grid */}
+        {/* Calendar */}
         <div style={{ background: "#fff", borderRadius: 14, overflow: "hidden", border: "1.5px solid #e5e7eb", marginBottom: 14 }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", background: "#f9fafb", borderBottom: "1px solid #f3f4f6" }}>
             {DAYS_IT.map((d, i) => (
@@ -1241,18 +1250,17 @@ function ProfiloCoach({ tornei, onLogout }) {
             ))}
           </div>
 
-          {calView === "month" && (
+          {calView === "month" ? (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)" }}>
               {calDays.map((day, idx) => {
-                const torneiGiorno = torneiDelGiorno(day);
-                const todayMark = isToday(day);
-                const isWeekend = idx % 7 >= 5;
+                const tg = getTorneiGiorno(day);
+                const weekend = idx % 7 >= 5;
                 return (
-                  <div key={idx} style={{ minHeight: 75, padding: "5px 3px", borderRight: idx % 7 !== 6 ? "1px solid #f3f4f6" : "none", borderBottom: "1px solid #f3f4f6", background: !day ? "#fafafa" : isWeekend ? "#f9fffe" : "#fff" }}>
+                  <div key={idx} style={{ minHeight: 75, padding: "5px 3px", borderRight: idx % 7 !== 6 ? "1px solid #f3f4f6" : "none", borderBottom: "1px solid #f3f4f6", background: !day ? "#fafafa" : weekend ? "#f9fffe" : "#fff" }}>
                     {day && (
                       <>
-                        <div style={{ width: 22, height: 22, borderRadius: "50%", background: todayMark ? "#16a34a" : "transparent", color: todayMark ? "#fff" : isWeekend ? "#16a34a" : "#374151", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: todayMark ? 800 : 600, marginBottom: 2 }}>{day}</div>
-                        {torneiGiorno.map(t => (
+                        <div style={{ width: 22, height: 22, borderRadius: "50%", background: isToday(day) ? "#16a34a" : "transparent", color: isToday(day) ? "#fff" : weekend ? "#16a34a" : "#374151", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: isToday(day) ? 800 : 600, marginBottom: 2 }}>{day}</div>
+                        {tg.map(t => (
                           <div key={t.id} onClick={() => setSelectedTorneo(t)}
                             style={{ background: getColor(t) + "20", borderLeft: `2px solid ${getColor(t)}`, borderRadius: "0 4px 4px 0", padding: "2px 3px", marginBottom: 2, cursor: "pointer", fontSize: 8, fontWeight: 700, color: getColor(t), overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                             🎾 {t.nome}
@@ -1264,23 +1272,20 @@ function ProfiloCoach({ tornei, onLogout }) {
                 );
               })}
             </div>
-          )}
-
-          {calView === "week" && (
+          ) : (
             <div>
               {weeks.map((week, wi) => (
                 <div key={wi} style={{ borderBottom: wi < weeks.length - 1 ? "2px solid #f0fdf4" : "none" }}>
                   <div style={{ background: "#f0fdf4", padding: "4px 10px", fontSize: 10, fontWeight: 800, color: "#16a34a", letterSpacing: 1 }}>SETTIMANA {wi + 1}</div>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)" }}>
                     {week.map((day, di) => {
-                      const torneiGiorno = torneiDelGiorno(day);
-                      const todayMark = isToday(day);
+                      const tg = getTorneiGiorno(day);
                       return (
                         <div key={di} style={{ minHeight: 90, padding: "5px 3px", borderRight: di !== 6 ? "1px solid #f3f4f6" : "none", background: !day ? "#fafafa" : di >= 5 ? "#f9fffe" : "#fff" }}>
                           {day && (
                             <>
-                              <div style={{ width: 24, height: 24, borderRadius: "50%", background: todayMark ? "#16a34a" : "transparent", color: todayMark ? "#fff" : di >= 5 ? "#16a34a" : "#374151", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: todayMark ? 800 : 600, marginBottom: 4 }}>{day}</div>
-                              {torneiGiorno.map(t => (
+                              <div style={{ width: 24, height: 24, borderRadius: "50%", background: isToday(day) ? "#16a34a" : "transparent", color: isToday(day) ? "#fff" : di >= 5 ? "#16a34a" : "#374151", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: isToday(day) ? 800 : 600, marginBottom: 4 }}>{day}</div>
+                              {tg.map(t => (
                                 <div key={t.id} onClick={() => setSelectedTorneo(t)}
                                   style={{ background: getColor(t), borderRadius: 6, padding: "3px 5px", marginBottom: 3, cursor: "pointer", color: "#fff", fontSize: 8, fontWeight: 700 }}>
                                   🎾 {t.nome}
@@ -1300,21 +1305,20 @@ function ProfiloCoach({ tornei, onLogout }) {
         </div>
 
         {/* Tornei del mese */}
-        {torneiDelMese.length > 0 && (
+        {torneiMese.length > 0 && (
           <div style={{ background: "#fff", borderRadius: 14, padding: 18, border: "1.5px solid #e5e7eb" }}>
-            <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 16, color: "#111827", margin: "0 0 12px" }}>📋 Tornei di {MONTHS_IT[currentMonth]}</h3>
-            {torneiDelMese.map(t => {
+            <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 16, color: "#111827", margin: "0 0 12px" }}>📋 Tornei di {MONTHS_IT[month]}</h3>
+            {torneiMese.map(t => {
               const confermati = (t.partecipanti || []).filter(p => p.risposta === "confermato").length;
               const inAttesa = (t.partecipanti || []).filter(p => p.risposta === "in attesa").length;
-              const isMioOld = t.coach_id === coach.id || t.coach_id_2 === coach.id;
               return (
                 <div key={t.id} onClick={() => setSelectedTorneo(t)}
-                  style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 6px", borderBottom: "1px solid #f3f4f6", cursor: "pointer", borderRadius: 8, transition: "background 0.15s" }}
+                  style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 6px", borderBottom: "1px solid #f3f4f6", cursor: "pointer", borderRadius: 8 }}
                   onMouseEnter={e => e.currentTarget.style.background = "#f9fafb"}
                   onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                   <div style={{ width: 5, height: 38, borderRadius: 3, background: getColor(t), flexShrink: 0 }} />
                   <div style={{ flex: 1 }}>
-                    <span style={{ fontWeight: 700, color: "#111827", fontSize: 13 }}>{t.nome}</span>
+                    <div style={{ fontWeight: 700, color: "#111827", fontSize: 13 }}>{t.nome}</div>
                     <div style={{ fontSize: 11, color: "#9ca3af" }}>
                       📅 {new Date(t.data).toLocaleDateString("it-IT", { weekday: "short", day: "numeric", month: "short" })} · 📍 {t.luogo}
                     </div>
