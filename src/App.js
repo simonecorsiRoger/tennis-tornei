@@ -1070,57 +1070,48 @@ function AdminCalendar({ tornei, onViewTorneo, onNewTorneo, onShowGiocatori, onS
 
 // ── Login Coach ─────────────────────────────────────────────────
 function LoginCoach({ onLogin }) {
-  const [nome, setNome] = useState("");
-  const [pin, setPin] = useState("");
+  const [password, setPassword] = useState("");
   const [errore, setErrore] = useState("");
-  const [loading, setLoading] = useState(false);
+  const COACH_PASSWORD = "tennistornei26";
 
-  const handleLogin = async () => {
-    if (!nome.trim() || !pin.trim()) { setErrore("Inserisci nome e PIN."); return; }
-    setLoading(true);
-    setErrore("");
-    const { data } = await supabase.from("coach").select("*")
-      .ilike("nome", nome.trim()).eq("pin", pin.trim()).single();
-    if (data) { onLogin(data); }
-    else { setErrore("Nome o PIN non corretti. Contatta l'admin."); }
-    setLoading(false);
+  const handleLogin = () => {
+    if (password === COACH_PASSWORD) {
+      onLogin();
+    } else {
+      setErrore("Password non corretta.");
+    }
   };
 
   return (
     <div style={{ minHeight: "100vh", background: "#f0fdf4", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, fontFamily: "'Inter', sans-serif" }}>
       <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
-      <div style={{ background: "#fff", borderRadius: 24, padding: 40, width: "100%", maxWidth: 400, boxShadow: "0 20px 60px rgba(0,0,0,0.08)", border: "1.5px solid #e5e7eb" }}>
+      <div style={{ background: "#fff", borderRadius: 24, padding: 40, width: "100%", maxWidth: 380, boxShadow: "0 20px 60px rgba(0,0,0,0.08)", border: "1.5px solid #e5e7eb" }}>
         <div style={{ textAlign: "center", marginBottom: 32 }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>🎓</div>
           <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 900, color: "#14532d", margin: "0 0 4px" }}>Area Coach</h1>
-          <p style={{ color: "#6b7280", fontSize: 13, margin: 0 }}>Piatti Tennis Center</p>
+          <p style={{ color: "#6b7280", fontSize: 13, margin: 0 }}>Piatti Tennis Center — Solo visualizzazione</p>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div>
-            <label style={{ fontSize: 13, fontWeight: 700, color: "#374151", display: "block", marginBottom: 6 }}>Il tuo nome</label>
-            <input value={nome} onChange={e => setNome(e.target.value)} placeholder="es. Carlo Ferri"
-              style={{ width: "100%", padding: "11px 14px", borderRadius: 10, border: "1.5px solid #d1d5db", fontSize: 14, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
-          </div>
-          <div>
-            <label style={{ fontSize: 13, fontWeight: 700, color: "#374151", display: "block", marginBottom: 6 }}>PIN</label>
-            <input value={pin} onChange={e => setPin(e.target.value)} type="password" placeholder="••••"
+            <label style={{ fontSize: 13, fontWeight: 700, color: "#374151", display: "block", marginBottom: 6 }}>Password</label>
+            <input value={password} onChange={e => setPassword(e.target.value)} type="password"
+              placeholder="••••••••••••••"
               onKeyDown={e => e.key === "Enter" && handleLogin()}
               style={{ width: "100%", padding: "11px 14px", borderRadius: 10, border: "1.5px solid #d1d5db", fontSize: 14, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
           </div>
           {errore && <div style={{ background: "#fee2e2", color: "#7f1d1d", padding: "10px 14px", borderRadius: 10, fontSize: 13, fontWeight: 600 }}>⚠️ {errore}</div>}
-          <button onClick={handleLogin} disabled={loading}
+          <button onClick={handleLogin}
             style={{ padding: "13px", background: "linear-gradient(135deg, #14532d, #16a34a)", color: "#fff", border: "none", borderRadius: 12, fontSize: 15, fontWeight: 800, cursor: "pointer", marginTop: 4 }}>
-            {loading ? "Accesso..." : "Accedi →"}
+            Accedi →
           </button>
         </div>
-        <p style={{ textAlign: "center", color: "#9ca3af", fontSize: 12, marginTop: 20 }}>Non hai le credenziali? Contatta l'admin.</p>
       </div>
     </div>
   );
 }
 
 // ── Profilo Coach ───────────────────────────────────────────────
-function ProfiloCoach({ coach, tornei, onLogout }) {
+function ProfiloCoach({ tornei, onLogout }) {
   const [selectedTorneo, setSelectedTorneo] = useState(null);
 
   const today = new Date();
@@ -1146,8 +1137,6 @@ function ProfiloCoach({ coach, tornei, onLogout }) {
   const prevMonth = () => { if (currentMonth === 0) { setCurrentMonth(11); setCurrentYear(y => y - 1); } else setCurrentMonth(m => m - 1); };
   const nextMonth = () => { if (currentMonth === 11) { setCurrentMonth(0); setCurrentYear(y => y + 1); } else setCurrentMonth(m => m + 1); };
   const getColor = (t) => CAT_COLORS[t.categoria] || "#16a34a";
-
-  const mieiTornei = tornei.filter(t => t.coach_id === coach.id || t.coach_id_2 === coach.id);
 
   if (selectedTorneo) {
     return (
@@ -1219,13 +1208,7 @@ function ProfiloCoach({ coach, tornei, onLogout }) {
               <div style={{ fontSize: 10, color: "#16a34a", fontWeight: 700, letterSpacing: 1 }}>SCHEDULE TOURNAMENTS</div>
             </div>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ textAlign: "right" }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#14532d" }}>🎓 {coach.nome}</div>
-              <div style={{ fontSize: 11, color: "#9ca3af" }}>{mieiTornei.length} tornei assegnati</div>
-            </div>
-            <button onClick={onLogout} style={{ padding: "7px 14px", background: "#f3f4f6", color: "#374151", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Esci</button>
-          </div>
+          <button onClick={onLogout} style={{ padding: "7px 14px", background: "#f3f4f6", color: "#374151", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Esci</button>
         </div>
       </header>
 
@@ -1330,10 +1313,7 @@ function ProfiloCoach({ coach, tornei, onLogout }) {
                   onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                   <div style={{ width: 5, height: 38, borderRadius: 3, background: getColor(t), flexShrink: 0 }} />
                   <div style={{ flex: 1 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <span style={{ fontWeight: 700, color: "#111827", fontSize: 13 }}>{t.nome}</span>
-                      {isMio && <span style={{ fontSize: 10, fontWeight: 700, color: "#14532d", background: "#d1fae5", padding: "1px 6px", borderRadius: 8 }}>🎓 Tu</span>}
-                    </div>
+                    <span style={{ fontWeight: 700, color: "#111827", fontSize: 13 }}>{t.nome}</span>
                     <div style={{ fontSize: 11, color: "#9ca3af" }}>
                       📅 {new Date(t.data).toLocaleDateString("it-IT", { weekday: "short", day: "numeric", month: "short" })} · 📍 {t.luogo}
                     </div>
@@ -1681,12 +1661,12 @@ export default function App() {
 
   // Login coach
   if (view === "coach" && !coachLoggato) {
-    return <LoginCoach onLogin={(c) => setCoachLoggato(c)} />;
+    return <LoginCoach onLogin={() => setCoachLoggato(true)} />;
   }
 
   // Profilo coach
   if (view === "coach" && coachLoggato) {
-    return <ProfiloCoach coach={coachLoggato} tornei={tornei} onLogout={() => { setCoachLoggato(null); setView("welcome"); }} />;
+    return <ProfiloCoach tornei={tornei} onLogout={() => { setCoachLoggato(false); setView("welcome"); }} />;
   }
 
   // Login giocatore
