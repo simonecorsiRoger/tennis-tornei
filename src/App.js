@@ -1123,15 +1123,16 @@ function ProfiloCoach({ tornei, onLogout }) {
   const weeks = [];
   for (let i = 0; i < calDays.length; i += 7) weeks.push(calDays.slice(i, i + 7));
 
+  const safeTornei = Array.isArray(tornei) ? tornei : [];
+  const monthStr = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}`;
+
   const torneiDelGiorno = (day) => {
     if (!day) return [];
-    const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    return tornei.filter(t => t.data === dateStr);
+    const dateStr = `${monthStr}-${String(day).padStart(2, "0")}`;
+    return safeTornei.filter(t => t && t.data === dateStr);
   };
 
-  const torneiDelMese = tornei.filter(t =>
-    t.data.startsWith(`${currentYear}-${String(currentMonth + 1).padStart(2, "0")}`)
-  );
+  const torneiDelMese = safeTornei.filter(t => t && t.data && t.data.startsWith(monthStr));
 
   const isToday = (day) => day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear();
   const prevMonth = () => { if (currentMonth === 0) { setCurrentMonth(11); setCurrentYear(y => y - 1); } else setCurrentMonth(m => m - 1); };
@@ -1305,7 +1306,7 @@ function ProfiloCoach({ tornei, onLogout }) {
             {torneiDelMese.map(t => {
               const confermati = (t.partecipanti || []).filter(p => p.risposta === "confermato").length;
               const inAttesa = (t.partecipanti || []).filter(p => p.risposta === "in attesa").length;
-              const isMio = t.coach_id === coach.id || t.coach_id_2 === coach.id;
+              const isMioOld = t.coach_id === coach.id || t.coach_id_2 === coach.id;
               return (
                 <div key={t.id} onClick={() => setSelectedTorneo(t)}
                   style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 6px", borderBottom: "1px solid #f3f4f6", cursor: "pointer", borderRadius: 8, transition: "background 0.15s" }}
